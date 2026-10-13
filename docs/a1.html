@@ -4,15 +4,145 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
 
-    <title>Example Student's HCDE 439 Physical Computing Page!</title>
+    <title>Pippo's HCDE 439 Assignment 1: Blink!</title>
 
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-    <h1>Example Student's Assignment 1!</h1>
-    <div class="header">
-      <img src="red-panda.jpg" />
-      <p>Here is all the documentation for assignment 1!</p>
-    </div>
+    <p class="back"><a href="index.html">&larr; Back to home</a></p>
+
+    <h1>Assignment 1: Blink!</h1>
+
+    <!-- ===================== Calculation ===================== -->
+    <section>
+      <h2>Resistor calculation</h2>
+      <div class="calc">
+        <p>V<sub>R</sub> = V<sub>supply</sub> &minus; V<sub>LED</sub> = 5&nbsp;V &minus; 2&nbsp;V = <strong>3&nbsp;V</strong></p>
+        <p>R = V<sub>R</sub> / I = 3&nbsp;V / 0.020&nbsp;A = <strong>150&nbsp;&Omega;</strong> &rarr; used <strong>220&nbsp;&Omega;</strong></p>
+        <p>I = 3&nbsp;V / 220&nbsp;&Omega; &asymp; <strong>13.6&nbsp;mA</strong></p>
+        <p>P = 3&nbsp;V &times; 0.0136&nbsp;A &asymp; <strong>0.041&nbsp;W</strong></p>
+      </div>
+    </section>
+
+    <!-- ===================== Circuit ===================== -->
+    <section>
+      <h2>Circuit</h2>
+      <figure>
+        <img src="circuit.jpg" alt="Photo of the breadboard circuit with three LEDs and three resistors wired to an Arduino Uno" />
+        <figcaption>
+          The finished circuit on my breadboard. Jumper wires run from pins 2, 3
+          and 4 to a 220&nbsp;&Omega; resistor (red-red-brown bands) for each
+          LED. Each LED's long leg (anode) connects to its resistor, and its
+          short leg (cathode) connects to the ground rail, which is wired to
+          the Arduino's GND pin.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== Code ===================== -->
+    <section>
+      <h2>Firmware (a1_blink.ino)</h2>
+<pre><code>void setup() {
+  // Set pin 2 as an output so it can power LED 1
+  pinMode(2, OUTPUT);
+  // Set pin 3 as an output so it can power LED 2
+  pinMode(3, OUTPUT);
+  // Set pin 4 as an output so it can power LED 3
+  pinMode(4, OUTPUT);
+}
+
+void loop() {
+  // Turn LED 1 on by setting pin 2 to HIGH
+  digitalWrite(2, HIGH);
+  // Keep LED 1 on for 1 second
+  delay(1000);
+  // Turn LED 1 off by setting pin 2 to LOW
+  digitalWrite(2, LOW);
+  // Keep LED 1 off for 1 second
+  delay(1000);
+
+  // Turn LED 2 on by setting pin 3 to HIGH
+  digitalWrite(3, HIGH);
+  // Keep LED 2 on for half a second
+  delay(500);
+  // Turn LED 2 off by setting pin 3 to LOW
+  digitalWrite(3, LOW);
+  // Keep LED 2 off for half a second
+  delay(500);
+
+  // Turn LED 3 on by setting pin 4 to HIGH
+  digitalWrite(4, HIGH);
+  // Keep LED 3 on for 0.2 seconds
+  delay(200);
+  // Turn LED 3 off by setting pin 4 to LOW
+  digitalWrite(4, LOW);
+  // Keep LED 3 off for 0.2 seconds
+  delay(200);
+}</code></pre>
+      <p>
+        One full cycle of the pattern takes 1.0 + 1.0 + 0.5 + 0.5 + 0.2 + 0.2 =
+        <strong>3.4 seconds</strong>, and then <code>loop()</code> starts it again.
+      </p>
+    </section>
+
+    <!-- ===================== Operation ===================== -->
+    <section>
+      <h2>Circuit in operation</h2>
+      <figure>
+        <img src="blink.gif" alt="Animated GIF of the three LEDs blinking in sequence, each one faster than the last" />
+        <figcaption>
+          The pattern running: LED 1 blinks slowly (1&nbsp;s on), then LED 2
+          (0.5&nbsp;s on), then LED 3 quickly (0.2&nbsp;s on), and the cycle
+          repeats every 3.4 seconds.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ===================== Questions ===================== -->
+    <section>
+      <h2>Questions</h2>
+
+      <h3>1. Voltage across the LEDs over time</h3>
+      <figure>
+        <img src="voltage-graph.jpg" alt="Graph of voltage across each LED over one cycle: each is a square pulse between 0 and 2 volts at a different time" />
+        <figcaption>
+          Each LED is either fully off (0&nbsp;V across it) or on, when it holds
+          its forward voltage of about 2&nbsp;V. The other 3&nbsp;V of the
+          pin's 5&nbsp;V is across the resistor, not the LED. LED 1 is on from
+          0&ndash;1.0&nbsp;s, LED 2 from 2.0&ndash;2.5&nbsp;s and LED 3 from
+          3.0&ndash;3.2&nbsp;s, and the whole pattern repeats every 3.4&nbsp;s.
+        </figcaption>
+      </figure>
+
+      <h3>2. How many LEDs could you blink independently, and how much current would that draw?</h3>
+      <p>
+        The Arduino Uno has 20 pins that can be used as digital outputs.
+      </p>
+      <p>
+        With the 220&nbsp;&Omega; resistors, each LED draws about 13.6&nbsp;mA, so
+        18 LEDs all on at once would draw 18 &times; 13.6&nbsp;mA &asymp;
+        <strong>245&nbsp;mA</strong>. 
+      </p>
+
+      <h3>3. How fast do you need to blink the LEDs before you can't tell they're blinking?</h3>
+      <p>
+        I tested this by setting the on and off delays to the same value
+        (<code>d</code> milliseconds) and making them smaller and smaller. One
+        blink is <code>2 &times; d</code> ms, so the blink rate is
+        <strong>f = 1000 / (2 &times; d)</strong> flashes per second.
+      </p>
+      <p>
+        At delay(20), the LED was still visibly flickering, but
+        at delay(10), it appeared steady to me. This is about
+        50 flashes per second.
+      </p>
+
+      <h3>4. Did you use AI tools?</h3>
+      <p>
+        Yes. I used AI tool to help me convert some files to the correct one.
+        I also used AI tool to help me draft the graph that i written on paper.
+        I also used AI tool to write the HTML file and to keep everything in order. 
+      </p>
+    </section>
   </body>
 </html>
