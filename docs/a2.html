@@ -3,16 +3,190 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
-
-    <title>Example Student's HCDE 439 Physical Computing Page!</title>
-
+ 
+    <title>Pippo's HCDE 439 Assignment 2: Magic Wand</title>
+ 
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-    <h1>Example Student's Assignment 2!</h1>
-    <div class="header">
-      <img src="red-panda.jpg" />
-      <p>Here is all the documentation for assignment 2!</p>
-    </div>
+    <p class="back"><a href="index.html">&larr; Back to home</a></p>
+ 
+    <h1>Assignment 2: Magic Wand</h1>
+    <section>
+      <h2>Schematic</h2>
+      <figure>
+        <img src="a2-schematic.jpg" alt="Schematic: Arduino pins 9, 10 and 11 each go through a 220 ohm resistor to an LED and then to GND. Pin 3 goes through a push button and a 10 kilohm resistor to GND." />
+        <figcaption>
+          Each LED has its own PWM pin (~9, ~10, ~11) so it can be faded with
+          <code>analogWrite()</code>, and its own 220&nbsp;&Omega; resistor to
+          limit its current to about 13.6&nbsp;mA. The push button connects
+          pin 3 to GND through a 10&nbsp;k&Omega; resistor. No 5V wire is
+          needed: pin 3 uses the Arduino's built-in pull-up resistor
+          (<code>INPUT_PULLUP</code>), so it reads HIGH when the button is
+          released and LOW when it is pressed.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <h2>Resistor calculations</h2>
+ 
+      <h3>LED resistors (red LEDs, V<sub>f</sub> &asymp; 2&nbsp;V, target 20&nbsp;mA)</h3>
+      <div class="calc">
+        <p>V<sub>R</sub> = 5&nbsp;V &minus; 2&nbsp;V = <strong>3&nbsp;V</strong></p>
+        <p>R = 3&nbsp;V / 0.020&nbsp;A = <strong>150&nbsp;&Omega;</strong> &rarr; used <strong>220&nbsp;&Omega;</strong></p>
+        <p>I = 3&nbsp;V / 220&nbsp;&Omega; &asymp; <strong>13.6&nbsp;mA</strong> per LED</p>
+        <p>P = 3&nbsp;V &times; 0.0136&nbsp;A &asymp; <strong>0.041&nbsp;W</strong> (under the 0.25&nbsp;W rating)</p>
+      </div>
+ 
+      <h3>Button resistor (10&nbsp;k&Omega; in series with the button)</h3>
+      <div class="calc">
+        <p>Internal pull-up &asymp; 35&nbsp;k&Omega; (20&ndash;50&nbsp;k&Omega; on the ATmega328P)</p>
+        <p>I = 5&nbsp;V / (35&nbsp;k&Omega; + 10&nbsp;k&Omega;) &asymp; <strong>0.11&nbsp;mA</strong> when the button is pressed</p>
+        <p>V<sub>pin 3</sub> = 5&nbsp;V &times; 10&nbsp;k&Omega; / 45&nbsp;k&Omega; &asymp; <strong>1.1&nbsp;V</strong> when pressed (below the 1.5&nbsp;V LOW threshold, so it reads LOW)</p>
+      </div>
+      <p>
+        Without a pull-up or pull-down, pin 3 would "float" and read random
+        values while the button is released. <code>INPUT_PULLUP</code> turns on
+        a resistor inside the Arduino that connects pin 3 to 5V, so the pin
+        reads HIGH until the button pulls it toward GND. That internal resistor
+        already keeps the current tiny (about 0.11&nbsp;mA). I added the
+        10&nbsp;k&Omega; resistor in series with the button as protection: if
+        pin 3 were ever accidentally set as an OUTPUT driving HIGH, pressing
+        the button would short the pin straight to GND. The 10&nbsp;k&Omega;
+        limits that worst case to 5&nbsp;V / 10&nbsp;k&Omega; = 0.5&nbsp;mA,
+        which is safe for the pin.
+      </p>
+    </section>
+ 
+    <!-- ===================== Circuit ===================== -->
+    <section>
+      <h2>Circuit</h2>
+      <figure>
+        <img src="a2-circuit.jpg" alt="Photo of the breadboard circuit with three LEDs, three 220 ohm resistors, a push button and a 10 kilohm resistor wired to an Arduino Uno" />
+        <figcaption>
+          The breadboard build, matching the schematic. Pins 9, 10 and 11 each
+          go through a 220&nbsp;&Omega; resistor to an LED's
+          long leg, and each LED's short leg goes to the GND rail. The push
+          button straddles the center gap. The orange wire connects pin 3 to
+          one side of the button, and the other side goes through the
+          10&nbsp;k&Omega; resistor and the brown
+          wire to ground.
+        </figcaption>
+      </figure>
+    </section>
+ 
+    <!-- ===================== Code ===================== -->
+    <section>
+      <h2>Firmware (a2_magic_wand.ino)</h2>
+<pre><code>// Pins for the three LEDs (all PWM pins, marked ~, so they can fade)
+const int ledPins[] = {9, 10, 11};
+const int numLeds = 3;
+const int buttonPin = 3;
+ 
+void setup() {
+  for (int i = 0; i &lt; numLeds; i++) {
+    pinMode(ledPins[i], OUTPUT);
+  }
+  pinMode(buttonPin, INPUT_PULLUP);
+}
+ 
+void loop() {
+  if (digitalRead(buttonPin) == LOW) {
+    for (int lap = 0; lap &lt; 3; lap++) {
+      for (int i = 0; i &lt; numLeds; i++) {
+        digitalWrite(ledPins[i], HIGH);
+        delay(100);
+        digitalWrite(ledPins[i], LOW);
+      }
+    }
+    for (int brightness = 255; brightness &gt;= 0; brightness--) {
+      for (int i = 0; i &lt; numLeds; i++) {
+        analogWrite(ledPins[i], brightness);
+      }
+      delay(5);
+    }
+  } else {
+    digitalWrite(ledPins[0], LOW);
+    digitalWrite(ledPins[1], LOW);
+    analogWrite(ledPins[2], 20);
+  }
+}</code></pre>
+      <p>
+        One button press runs for about 2.2 seconds: the chase is
+        3 laps &times; 3 LEDs &times; 100&nbsp;ms = 0.9&nbsp;s, and the fade is
+        256 steps &times; 5&nbsp;ms &asymp; 1.3&nbsp;s. Holding the button down
+        repeats the process.
+      </p>
+    </section>
+ 
+    <section>
+      <h2>Circuit in operation</h2>
+      <figure>
+        <img src="a2-demo.gif" alt="Animated GIF of the magic wand: the tip LED glows dimly, then a button press makes the LEDs chase and fade out" />
+        <figcaption>
+          the tip LED glows at a low brightness .
+          Press: the LEDs light one at a time from the handle to the tip three
+          times , then
+          all three fade from full brightness to off .
+        </figcaption>
+      </figure>
+    </section>
+ 
+    <!-- ===================== Questions ===================== -->
+    <section>
+      <h2>Questions</h2>
+ 
+      <h3>1. Voltage across an LED with analogWrite(led, 64), (led, 128) and (led, 255)</h3>
+      <figure>
+        <img src="a2-pwm-graph.jpg" alt="Three stacked square-wave graphs of LED voltage over 6 milliseconds: 25 percent on, 50 percent on, and always on, each switching between 0 and 2 volts" />
+        <figcaption>
+          the functiono switches the pin fully on and off about 490 times per second (a period of
+          about 2.04&nbsp;ms). When the pin is on, the LED holds its forward
+          voltage of about 2&nbsp;V (the other 3&nbsp;V is across the resistor).
+          The value sets how much of each period is on: 64/255 &asymp; 25%,
+          128/255 &asymp; 50%, and 255/255 = 100% (always on). The LED flickers
+          too fast to see, so it simply looks dimmer at lower values.
+        </figcaption>
+      </figure>
+ 
+      <h3>2. Total current draw and battery life</h3>
+      <div class="calc">
+        <p>3 LEDs &times; 13.6&nbsp;mA = <strong>40.9&nbsp;mA</strong></p>
+        <p>+ button 0.11&nbsp;mA (while pressed) = <strong>&asymp; 41.0&nbsp;mA</strong> total</p>
+      </div>
+      <p>
+        This is <strong>below</strong> the Arduino's limits. Each LED's
+        13.6&nbsp;mA is under the 20&nbsp;mA recommended (40&nbsp;mA absolute
+        maximum) per pin, and the 41.0&nbsp;mA total is far under the
+        ATmega328P's 200&nbsp;mA limit for the whole chip.
+      </p>
+      <div class="calc">
+        <p>Circuit only: 1200&nbsp;mAh / 41.0&nbsp;mA &asymp; <strong>29&nbsp;hours</strong></p>
+        <p>Including the Uno board itself (&asymp;45&nbsp;mA): 1200&nbsp;mAh / 86.0&nbsp;mA &asymp; <strong>14&nbsp;hours</strong></p>
+      </div>
+ 
+      <h3>3. Measured vs. theoretical LED voltage</h3>
+      <p>
+        I measured <strong>__ V</strong> across LED 3 while it was fully on.
+        The typical forward voltage for a red LED is about 1.8&ndash;2.2&nbsp;V,
+        and I used 2.0&nbsp;V in my calculations so my measurement is
+        close to the expected value.
+      </p>
+ 
+      <h3>4. Did you use AI tools?</h3>
+      <p>
+        Yes I did use AI to turn my files to the correct type.
+        I used it to draft the HTML too by inputing the google docs that I wrote and the calculations and the graphs
+        to turn it into a HTML.
+      </p>
+      <p>
+        <span class="todo">[Add 2&ndash;3 sentences of your own reflection:
+          I think the practice in class that I had building the curcuits were really helpful and I use less time to build the curcuits.
+          However, I think the coding part I have to search up more on Google how to each function would work so it takes more time. 
+        </span>
+      </p>
+    </section>
   </body>
 </html>
+ 
